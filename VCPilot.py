@@ -1,6 +1,6 @@
 import fire
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -9,6 +9,10 @@ from langchain import PromptTemplate
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.tools.retriever import create_retriever_tool
 import openai
+
+from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+from langchain_core.language_models.llms import LLM
+
 
 class FireworkLLM(LLM):
 
@@ -24,13 +28,13 @@ class FireworkLLM(LLM):
         **kwargs: Any,
     ) -> str:
         client = openai.OpenAI(
-            base_url = "https://api.fireworks.ai/inference/v1",
-            api_key="soXg5G0dRAywvZyyLIOLwjKBfe6S1kqV6lC2KdEcVbWqlxM4",
+            base_url = "",
+            api_key="",
         )
         response = client.chat.completions.create(
           model="accounts/fireworks/models/mixtral-8x7b-instruct",
           temperature=0,
-          max_tokens=4096,
+          max_tokens=4096*4,
           messages=[{
             "role": "user",
             "content": prompt,
@@ -59,8 +63,8 @@ class VCPilot:
         retriever = index.as_retriever()
         return index, retriever
     
-    def get_relevant_documents(retriever, question: str) -> List[str]:
-        documents = retriever.retrieve(question)
+    def get_relevant_documents(self, question: str) -> List[str]:
+        documents = self.retriever.retrieve(question)
         sorted_documents = sorted(documents, key=lambda node: node.score, reverse=True)
         relevant_documents = [node.text.replace("\n", " ") for node in sorted_documents]
         return relevant_documents
@@ -106,7 +110,7 @@ class VCPilot:
                 )
         return tasks
 
-    def get_agent_executor(self, agent_prompt) -> AgentExecutor:
+    def get_agent_executor(self) -> AgentExecutor:
 
         retriever_tool = create_retriever_tool(
             self.retriever,
@@ -117,6 +121,33 @@ class VCPilot:
         tools = [
             retriever_tool,
         ]
+
+        agent_prompt = PromptTemplate(
+            input_variables=['agent_scratchpad', 'input', 'tool_names', 'tools'],
+            template="""
+            Answer the following questions as best you can.
+            You have access to the following tools that can reference the latest research on the given topic.
+            Do not hallucinate.  If you do not have the relevant research to the question, exclusively say `NOT ENOUGH INFORMATION`:
+
+            {tools}
+
+            Use the following format:
+
+            Question: the input question you must answer
+            Thought: you should always think about what to do
+            Action: the action to take, should be one of [{tool_names}]
+            Action Input: the input to the action
+            Observation: the result of the action
+            ... (this Thought/Action/Action Input/Observation can repeat N times)
+            Thought: I now know the final answer
+            Final Answer: the final answer to the original input question
+
+            Begin!
+
+            Question: {input}
+            Thought:{agent_scratchpad}"""
+        )
+
         agent = create_react_agent(
             self.llm, tools, agent_prompt
         )
@@ -124,14 +155,15 @@ class VCPilot:
             agent=agent,
             tools=tools,
             verbose=False,
-            handle_parsing_errors=True
+            handle_parsing_errors=True,
+            max_execution_time=600
         )
 
         return agent_executor
 
     def get_research(self, proposal: str, agent_executor: AgentExecutor, tasks: List[str]) -> (List[str], List[str]):
         summaries = []
-        citations = self.retriever.retrieve(proposal)
+        citations = self.get_relevant_documents(proposal)
         for i, task in enumerate(tasks):
             response = agent_executor.invoke({"input": task})
             summary = response["output"]
@@ -142,17 +174,17 @@ class VCPilot:
             # print("#"*20)
         return summaries, citations
 
-    def generate_highlights(self, llm, proposal: str, citations: List[str], summaries: List[str]) -> str:
+    def generate_highlights(self, proposal: str, citations: List[str], summaries: List[str]) -> str:
         highlights_prefix = f"""
     You are a research analyst working for a venture capital firm and you need to assess a risk profile of a deep tech startup that is working on the following proposal:
     {proposal}
     """
 
         highlights_chunks = ""
-        for i, (chunk, summary)  in enumerate(zip(chunks, summaries)):
+        for i, (citation, summary)  in enumerate(zip(citations, summaries)):
             highlights_chunks += f"""
     Citation {i+1}:
-    {chunk}
+    {citation}
 
     Summary {i+1}:
     {summary}
@@ -162,10 +194,10 @@ class VCPilot:
         highlights_suffix = """
     Using these citations and summaries only - please provide a final risk report analysis using this template:
 
-    ### Identify Key Challenges
-    ### Explore Potential Solutions
-    ### Assess Innovation and Trend Alignment
-    ### Solution Potential and Risk Evaluation
+### Identify Key Challenges
+### Explore Potential Solutions
+### Assess Innovation and Trend Alignment
+### Solution Potential and Risk Evaluation
 
     ONLY OUTPUT CONTENT WITHIN THESE 4 SECTIONS
     Respond in only `-` delimited list format with 3-5 items in EACH SECTION.
@@ -193,17 +225,17 @@ class VCPilot:
 
     def get_conclusion(self, proposal: str, highlights_response: str) -> str:
         conclusion_prompt = f"""
-        You are a research analyst working on a due diligence report for a venture capital firm and need to assess a technology risk profile of a deep tech AI startup that is working on
-        {proposal}
+You are a research analyst working on a due diligence report for a venture capital firm and need to assess a technology risk profile of a deep tech AI startup that is working on
+{proposal}
 
-        You've read all the research papers relevant to this topic, produced a preliminary report, formulated relevant questions and want to create a due diligence conclusion summary based on that. Please write a conclusion section for the report, focus on investment risks of our firm, a venture capital firm investing into early stage startups, keep it under 200 words and focus on technology risk. Be really critical analyst, like someone's job depends on this. Be dry and to the point, less verbose and more factual. And then include one-liner to describe the risk profile like you are describing it to a friend, super simple and with a bit of a humor.
-        {highlights_response}
+You've read all the research papers relevant to this topic, produced a preliminary report, formulated relevant questions and want to create a due diligence conclusion summary based on that. Please write a conclusion section for the report, focus on investment risks of our firm, a venture capital firm investing into early stage startups, keep it under 200 words and focus on technology risk. Be really critical analyst, like someone's job depends on this. Be dry and to the point, less verbose and more factual. And then include one-liner to describe the risk profile like you are describing it to a friend, super simple and with a bit of a humor.
+{highlights_response}
 
-        Respond in the following format:
-        Conclusion: <serious conclusion summary>
-        Final Thoughts: <goofy analogy to a friend>
-        Rating: <1.0 - 10.0>
-        Emoji: <relevant emoji>
+Respond in the following format:
+Conclusion: <serious conclusion summary>
+Final Thoughts: <goofy analogy to a friend>
+Rating: <1.0 - 10.0>
+Emoji: <relevant emoji>
         """
 
         conclusion = self.llm.invoke(conclusion_prompt)
@@ -220,20 +252,20 @@ class VCPilot:
         conclusion = self.get_conclusion(proposal, highlights)
         tasks_str = "- " + "\n- ".join(tasks)
         final_report = f"""
-        ## Problem Statement
-        {problem_statement}
+## Problem Statement
+{problem_statement}
 
-        ## Scope of Tasks
-        {tasks_str}
+## Scope of Tasks
+{tasks_str}
 
-        ## Research
-        {highlights}
+## Research
+{highlights}
 
-        ## Follow up Questions
-        {followup_response}
+## Follow up Questions
+{followup_response}
 
-        ## Conclusion
-        {conclusion}
+## Conclusion
+{conclusion}
         """
         return final_report
 
