@@ -28,8 +28,8 @@ class FireworkLLM(LLM):
         **kwargs: Any,
     ) -> str:
         client = openai.OpenAI(
-            base_url = "",
-            api_key="",
+            base_url = os.environ["OPENAI_API_BASE"],
+            api_key=os.environ["OPENAI_API_KEY"],
         )
         response = client.chat.completions.create(
           model="accounts/fireworks/models/mixtral-8x7b-instruct",
@@ -44,10 +44,10 @@ class FireworkLLM(LLM):
 
 class VCPilot:
     def __init__(self):
-        self.QDRANT_URL = os.getenv("QDRANT_URL")
-        self.QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-        self.OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
-        self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        self.QDRANT_URL = os.environ["QDRANT_URL"]
+        self.QDRANT_API_KEY = os.environ["QDRANT_API_KEY"]
+        self.OPENAI_API_BASE = os.environ["OPENAI_API_BASE"]
+        self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
         self.COLLECTION_NAME = "vc-pilot-full"
         self.index, self.retriever = self.get_index_and_retriever()
         self.llm = FireworkLLM()
