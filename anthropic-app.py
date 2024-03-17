@@ -29,10 +29,11 @@ os.environ["QDRANT_URL"] = st.secrets.qdrant.url
 os.environ["QDRANT_API_KEY"] = st.secrets.qdrant.api_key
 os.environ["OPENAI_API_BASE"] = st.secrets.fireworks.base_url
 os.environ["OPENAI_API_KEY"] = st.secrets.fireworks.api_key
+os.environ["ANTHROPIC_API_KEY"] = st.secrets.anthropic.api_key
 
 vcpilot = VCPilot()
 
-st.title("VC pilot Claude-3-opus")
+st.title("VC pilot")
 
 if question := st.chat_input("How risky is this project?:"):
     st.chat_message("user").markdown(question)
