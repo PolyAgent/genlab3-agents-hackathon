@@ -160,9 +160,10 @@ if question := st.chat_input("Insert TechCrunch URL for automatic startup analys
         with st.spinner("Wrapping up..."):
             conclusion = vcpilot.get_conclusion(question, highlights)
         tasks_str = "- " + "\n- ".join(tasks)
+        problem_statement_fix = problem_statement.replace("\"", "")
         final_report = f"""
     ## Problem Statement
-    {problem_statement}
+    {problem_statement_fix}
 
     ## Scope of Tasks
     {tasks_str}
