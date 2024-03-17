@@ -95,38 +95,48 @@ vcpilot = VCPilot()
 
 st.title("VC pilot Claude-3-opus")
 
-techcrunch_article_url = st.text_input("Enter a TechCrunch article URL:", "")
+example_articles = [
+    "https://techcrunch.com/2024/03/12/axion-rays-ai-attempts-to-detect-product-flaws-to-prevent-recalls/",
+    "https://techcrunch.com/2023/11/09/ghost-now-openai-backed-claims-llms-will-overcome-self-driving-setbacks-but-experts-are-skeptical/",
+    "https://techcrunch.com/2022/02/02/scale-ai-gets-into-the-synthetic-data-game/"
+]
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Axion Ray"):
+        st.session_state['selected_article_url'] = example_articles[0]
+with col2:
+    if st.button("Ghost Autonomy"):
+        st.session_state['selected_article_url'] = example_articles[1]
+with col3:
+    if st.button("Scale AI"):
+        st.session_state['selected_article_url'] = example_articles[2]
+
+techcrunch_article_url = st.text_input("Enter a TechCrunch article URL:", value=st.session_state.get('selected_article_url', ''))
 if techcrunch_article_url:
     scraped_content = scrape_techcrunch_content(techcrunch_article_url)
     if scraped_content:
         st.text_area("Scraped Article Content:", scraped_content, height=300)
-    else:
-        st.error("Could not scrape content from the URL. Please check the URL and try again.")
+        # Proceed to use the scraped content as input for your analysis
+        with st.spinner("Analyzing article content..."):
+            # Simulate analysis of the article content
+            problem_statement = vcpilot.get_problem_statement(scraped_content)  # Assuming this function can take the article content
+            # Additional processing based on the article content
+            # This part replaces the manual question input and directly uses the article content
 
-if question := st.chat_input("How risky is this project?:"):
-    st.chat_message("user").markdown(question)
-    
-
-    # with st.spinner("Generating report..."):
-    #     response = vcpilot.get_full_report(question)
-    with st.spinner("Rephrasing problem statement..."):
-        time.sleep(2)
-        problem_statement = vcpilot.get_problem_statement(question)
-    with st.spinner("Generating research tasks..."):
-        tasks = vcpilot.get_research_tasks(question)
-    with st.spinner("Initializing agent..."):
-        time.sleep(2)
-        agent_executor = vcpilot.get_agent_executor()
-    with st.spinner("Agent performing research..."):
-        summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
-    with st.spinner("Getting highlights from research..."):
-        highlights = vcpilot.generate_highlights(question, citations, summaries)
-    with st.spinner("Considering areas for followup..."):
-        followups = vcpilot.get_followup_questions(highlights)
-    with st.spinner("Wrapping up..."):
-        conclusion = vcpilot.get_conclusion(question, highlights)
-    tasks_str = "- " + "\n- ".join(tasks)
-    final_report = f"""
+            # You can replace or adjust the logic below according to how you process the content
+            tasks = vcpilot.get_research_tasks(scraped_content)
+            with st.spinner("Initializing agent..."):
+                time.sleep(2)  # Simulated delay for demonstration
+                agent_executor = vcpilot.get_agent_executor()
+            summaries, citations = vcpilot.get_research(scraped_content, agent_executor, tasks)
+            highlights = vcpilot.generate_highlights(scraped_content, citations, summaries)
+            followups = vcpilot.get_followup_questions(highlights)
+            conclusion = vcpilot.get_conclusion(scraped_content, highlights)
+            
+            # Constructing the final report
+            tasks_str = "- " + "\n- ".join(tasks)
+            final_report = f"""
 ## Problem Statement
 {problem_statement}
 
