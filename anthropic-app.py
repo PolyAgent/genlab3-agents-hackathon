@@ -13,7 +13,7 @@ client = anthropic.Client(api_key=st.secrets.anthropic.api_key)
 import logging
 import sys
 import os
-
+import time
 import qdrant_client
 from IPython.display import Markdown, display
 from llama_index.core import VectorStoreIndex
@@ -37,7 +37,39 @@ st.title("VC pilot Claude-3-opus")
 if question := st.chat_input("How risky is this project?:"):
     st.chat_message("user").markdown(question)
     
-    with st.spinner("Generating report..."):
-        response = vcpilot.get_full_report(question)
-    with st.chat_message("assistant"):
-        st.markdown(response)
+    # with st.spinner("Generating report..."):
+    #     response = vcpilot.get_full_report(question)
+    with st.spinner("Rephrasing problem statement..."):
+        time.sleep(2)
+        problem_statement = vcpilot.get_problem_statement(question)
+    with st.spinner("Generating research tasks..."):
+        tasks = vcpilot.get_research_tasks(question)
+    with st.spinner("Initializing agent..."):
+        time.sleep(2)
+        agent_executor = vcpilot.get_agent_executor()
+    with st.spinner("Agent performing research..."):
+        summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
+    with st.spinner("Getting highlights from research..."):
+        highlights = vcpilot.generate_highlights(question, citations, summaries)
+    with st.spinner("Considering areas for followup..."):
+        followups = vcpilot.get_followup_questions(highlights)
+    with st.spinner("Wrapping up..."):
+        conclusion = vcpilot.get_conclusion(question, highlights)
+    tasks_str = "- " + "\n- ".join(tasks)
+    final_report = f"""
+## Problem Statement
+{problem_statement}
+
+## Scope of Tasks
+{tasks_str}
+
+## Research
+{highlights}
+
+## Follow up Questions
+{followups}
+
+## Conclusion
+{conclusion}
+"""
+    st.chat_message("assistant").markdown(final_report)
