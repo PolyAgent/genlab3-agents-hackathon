@@ -61,9 +61,22 @@ def get_startup_description(url):
         return f"Failed to fetch the webpage: {e}"
     except Exception as e:
         return f"An error occurred: {e}"
+    
+def is_url(string):
+    # Simplified regex pattern for URLs
+    regex = re.compile(
+        r'^(https?://)'  # http:// or https://
+        r'([\da-z\.-]+)\.'  # Domain name
+        r'([a-z\.]{2,6})'  # Top level domain
+        r'([/\w \.-]*)*/?$',  # Path
+        re.IGNORECASE)
+
+    return re.match(regex, string) is not None
+
 
 import openai
 from VCPilot import VCPilot
+import random
 
 
 sidebar()
@@ -90,10 +103,11 @@ os.environ["QDRANT_URL"] = st.secrets.qdrant.url
 os.environ["QDRANT_API_KEY"] = st.secrets.qdrant.api_key
 os.environ["OPENAI_API_BASE"] = st.secrets.fireworks.base_url
 os.environ["OPENAI_API_KEY"] = st.secrets.fireworks.api_key
+os.environ["ANTHROPIC_API_KEY"] = st.secrets.anthropic.api_key
 
 vcpilot = VCPilot()
 
-st.title("VC pilot Claude-3-opus")
+st.title("VC pilot")
 
 example_articles = [
     "https://techcrunch.com/2024/03/12/axion-rays-ai-attempts-to-detect-product-flaws-to-prevent-recalls/",
@@ -112,45 +126,63 @@ with col3:
     if st.button("Scale AI"):
         st.session_state['selected_article_url'] = example_articles[2]
 
-techcrunch_article_url = st.text_input("Enter a TechCrunch article URL:", value=st.session_state.get('selected_article_url', ''))
-if techcrunch_article_url:
-    scraped_content = scrape_techcrunch_content(techcrunch_article_url)
-    if scraped_content:
-        st.text_area("Scraped Article Content:", scraped_content, height=300)
-        # Proceed to use the scraped content as input for your analysis
-        with st.spinner("Analyzing article content..."):
-            # Simulate analysis of the article content
-            problem_statement = vcpilot.get_problem_statement(scraped_content)  # Assuming this function can take the article content
-            # Additional processing based on the article content
-            # This part replaces the manual question input and directly uses the article content
 
-            # You can replace or adjust the logic below according to how you process the content
-            tasks = vcpilot.get_research_tasks(scraped_content)
-            with st.spinner("Initializing agent..."):
-                time.sleep(2)  # Simulated delay for demonstration
-                agent_executor = vcpilot.get_agent_executor()
-            summaries, citations = vcpilot.get_research(scraped_content, agent_executor, tasks)
-            highlights = vcpilot.generate_highlights(scraped_content, citations, summaries)
+if question := st.chat_input("Insert TechCrunch URL for automatic startup analysis") or st.session_state.get('selected_article_url', False):
+    if is_url(question):
+        st.session_state['selected_article_url'] = question
+        techcrunch_article_url = question
+        try:
+            scraped_content = scrape_techcrunch_content(techcrunch_article_url)
+            st.chat_message("assistant").markdown("Got web content")
+        except Exception as e:
+            st.chat_message("user").markdown("Could not get web content")
+
+    else:
+        st.chat_message("user").markdown(question)
+
+    try:
+        # with st.spinner("Generating report..."):
+        #     response = vcpilot.get_full_report(question)
+        with st.spinner("Rephrasing problem statement..."):
+            time.sleep(2)
+            problem_statement = vcpilot.get_problem_statement(question)
+        with st.spinner("Generating research tasks..."):
+            tasks = vcpilot.get_research_tasks(question)
+        with st.spinner("Initializing agent..."):
+            time.sleep(2)
+            agent_executor = vcpilot.get_agent_executor()
+        with st.spinner("Agent performing research..."):
+            summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
+        with st.spinner("Getting highlights from research..."):
+            highlights = vcpilot.generate_highlights(question, citations, summaries)
+        with st.spinner("Considering areas for followup..."):
             followups = vcpilot.get_followup_questions(highlights)
-            conclusion = vcpilot.get_conclusion(scraped_content, highlights)
-            
-            # Constructing the final report
-            tasks_str = "- " + "\n- ".join(tasks)
-            final_report = f"""
-## Problem Statement
-{problem_statement}
+        with st.spinner("Wrapping up..."):
+            conclusion = vcpilot.get_conclusion(question, highlights)
+        tasks_str = "- " + "\n- ".join(tasks)
+        final_report = f"""
+    ## Problem Statement
+    {problem_statement}
 
-## Scope of Tasks
-{tasks_str}
+    ## Scope of Tasks
+    {tasks_str}
 
-## Research
-{highlights}
+    ## Research
+    {highlights}
 
-## Follow up Questions
-{followups}
+    ## Follow up Questions
+    {followups}
 
-## Conclusion
-{conclusion}
-"""
-    st.chat_message("assistant").markdown(final_report)
-
+    ## Conclusion
+    {conclusion}
+    """
+        st.chat_message("assistant").markdown(final_report)
+    except Exception as e:
+        responses = [
+            "It seems your idea isn't quite within the AI domain or is too vague for us to assess accurately.",
+            "Your idea doesn't seem directly related to AI, or it might be too ambiguous for us to provide a clear evaluation.",
+            "From what we can gather, your idea doesn't align with AI or it's too ambiguous to form a solid judgment.",
+            "Your idea appears to be either unrelated to AI or too nebulous for us to discern its connection.",
+            "It seems your idea is either not within the AI realm or too unclear for us to determine its relevance.",
+            ]
+        st.chat_message("assistant").markdown(random.choice(responses))

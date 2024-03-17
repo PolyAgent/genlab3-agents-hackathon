@@ -1,5 +1,8 @@
 # VC Pilot
 
+[Production app](https://vc-pilot.streamlit.app)
+[Dev release](https://vc-pilot-dev.streamlit.app)
+
 ### Prerequisites
 
 sync submodules

@@ -13,6 +13,10 @@ import openai
 
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
+from langchain_anthropic import ChatAnthropic
+from langchain_core.prompts import ChatPromptTemplate
+
+
 
 
 class FireworkLLM(LLM):
@@ -42,6 +46,8 @@ class FireworkLLM(LLM):
           }],
         )
         return response.choices[0].message.content
+
+        
 
 class VCPilot:
     def __init__(self):
@@ -168,6 +174,7 @@ class VCPilot:
     def get_research(self, proposal: str, agent_executor: AgentExecutor, tasks: List[str]) -> (List[str], List[str]):
         summaries = []
         citations = self.get_relevant_documents(proposal)
+        print(f"number of citations: {len(citations)}")
         for i, task in enumerate(tasks):
             response = agent_executor.invoke({"input": task})
             summary = response["output"]
@@ -229,20 +236,28 @@ class VCPilot:
 
     def get_conclusion(self, proposal: str, highlights_response: str) -> str:
         conclusion_prompt = f"""
-You are a research analyst working on a due diligence report for a venture capital firm and need to assess a technology risk profile of a deep tech AI startup that is working on
+You are a research analyst working on a due diligence report for a venture capital firm and need to assess a technology risk profile of a deep tech AI startup that is working on: 
 {proposal}
 
 You've read all the research papers relevant to this topic, produced a preliminary report, formulated relevant questions and want to create a due diligence conclusion summary based on that. Please write a conclusion section for the report, focus on investment risks of our firm, a venture capital firm investing into early stage startups, keep it under 200 words and focus on technology risk. Be really critical analyst, like someone's job depends on this. Be dry and to the point, less verbose and more factual. And then include one-liner to describe the risk profile like you are describing it to a friend, super simple and with a bit of a humor.
+Preliminary report:
 {highlights_response}
+"""
+# Respond in the following format:
+# Conclusion: <serious conclusion summary>
+# Final Thoughts: <goofy analogy to a friend>
+# Rating: <1.0 - 10.0>
+# Emoji: <relevant emoji>
+#         """
 
-Respond in the following format:
-Conclusion: <serious conclusion summary>
-Final Thoughts: <goofy analogy to a friend>
-Rating: <1.0 - 10.0>
-Emoji: <relevant emoji>
-        """
-
-        conclusion = self.llm.invoke(conclusion_prompt)
+        # mistral based report
+        # conclusion = self.llm.invoke(conclusion_prompt)
+        
+        chat = ChatAnthropic(temperature=0, model_name="claude-3-opus-20240229")
+        prompt = ChatPromptTemplate.from_messages([("human", conclusion_prompt)]) 
+        chain = prompt | chat
+        return chain.invoke({}).content 
+        
         return conclusion
 
     def get_full_report(self, proposal: str) -> str:
