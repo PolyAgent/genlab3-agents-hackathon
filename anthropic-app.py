@@ -63,6 +63,8 @@ def get_startup_description(url):
         return f"An error occurred: {e}"
 
 import openai
+from VCPilot import VCPilot
+
 
 sidebar()
 
@@ -72,7 +74,7 @@ client = anthropic.Client(api_key=st.secrets.anthropic.api_key)
 import logging
 import sys
 import os
-
+import time
 import qdrant_client
 from IPython.display import Markdown, display
 from llama_index.core import VectorStoreIndex
@@ -89,34 +91,7 @@ os.environ["QDRANT_API_KEY"] = st.secrets.qdrant.api_key
 os.environ["OPENAI_API_BASE"] = st.secrets.fireworks.base_url
 os.environ["OPENAI_API_KEY"] = st.secrets.fireworks.api_key
 
-COLLECTION_NAME = "vc-pilot-full"
-
-# Set up Qdrant client for vector store
-qdrant_client = QdrantClient(
-    url=os.environ["QDRANT_URL"],
-    api_key=os.environ["QDRANT_API_KEY"],
-)
-
-# Embedding model for vector insertion
-from llama_index.embeddings.openai import OpenAIEmbedding
-
-fw_embed_model = OpenAIEmbedding(
-    model_name="nomic-ai/nomic-embed-text-v1.5",
-    api_base=os.environ["OPENAI_API_BASE"],
-    api_key=os.environ["OPENAI_API_KEY"])
-Settings.embed_model = fw_embed_model
-
-
-vector_store = QdrantVectorStore(
-    client=qdrant_client,
-    collection_name=COLLECTION_NAME
-)
-
-index = VectorStoreIndex.from_vector_store(
-    vector_store=vector_store,
-    embed_model=fw_embed_model
-)
-retriever = index.as_retriever()
+vcpilot = VCPilot()
 
 st.title("VC pilot Claude-3-opus")
 
@@ -131,19 +106,41 @@ if techcrunch_article_url:
 if question := st.chat_input("How risky is this project?:"):
     st.chat_message("user").markdown(question)
     
-    # Use the scraped_content as part of the context if needed
-    question_context = retriever.retrieve(question)[0].text
-    st.write(f"qdrant context: {question_context}")
-    
-    # Assuming you want to include the scraped TechCrunch content in the context
-    full_context = f"{scraped_content}\n\n{question_context}" if techcrunch_article_url else question_context
 
-    response = client.messages.create(
-        model="claude-3-opus-20240229",
-        max_tokens=1024,
-        messages=[
-            {"role": "user", "content": f"""{question}. You can use next documents: {full_context}"""}
-        ]
-    )
-    with st.chat_message("assistant"):
-        st.markdown(response.content[0].text)
+    # with st.spinner("Generating report..."):
+    #     response = vcpilot.get_full_report(question)
+    with st.spinner("Rephrasing problem statement..."):
+        time.sleep(2)
+        problem_statement = vcpilot.get_problem_statement(question)
+    with st.spinner("Generating research tasks..."):
+        tasks = vcpilot.get_research_tasks(question)
+    with st.spinner("Initializing agent..."):
+        time.sleep(2)
+        agent_executor = vcpilot.get_agent_executor()
+    with st.spinner("Agent performing research..."):
+        summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
+    with st.spinner("Getting highlights from research..."):
+        highlights = vcpilot.generate_highlights(question, citations, summaries)
+    with st.spinner("Considering areas for followup..."):
+        followups = vcpilot.get_followup_questions(highlights)
+    with st.spinner("Wrapping up..."):
+        conclusion = vcpilot.get_conclusion(question, highlights)
+    tasks_str = "- " + "\n- ".join(tasks)
+    final_report = f"""
+## Problem Statement
+{problem_statement}
+
+## Scope of Tasks
+{tasks_str}
+
+## Research
+{highlights}
+
+## Follow up Questions
+{followups}
+
+## Conclusion
+{conclusion}
+"""
+    st.chat_message("assistant").markdown(final_report)
+
