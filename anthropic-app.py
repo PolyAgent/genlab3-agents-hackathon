@@ -1,5 +1,8 @@
 import streamlit as st
 import anthropic
+from components.sidebar import sidebar
+
+sidebar()
 
 client = anthropic.Client(api_key=st.secrets.anthropic.key)
 
