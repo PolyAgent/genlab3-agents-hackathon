@@ -3,6 +3,7 @@ import os
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
+from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, Settings
 from langchain import PromptTemplate
@@ -55,7 +56,10 @@ class VCPilot:
 
     def get_index_and_retriever(self):
         qdrant_client = QdrantClient(url=self.QDRANT_URL, api_key=self.QDRANT_API_KEY)
-        embed_model = FastEmbedEmbedding(model_name="nomic-ai/nomic-embed-text-v1.5")
+        embed_model = OpenAIEmbedding(
+            model_name="nomic-ai/nomic-embed-text-v1.5",
+            api_base=os.environ["OPENAI_API_BASE"],
+            api_key=os.environ["OPENAI_API_KEY"])
         Settings.embed_model = embed_model
 
         vector_store = QdrantVectorStore(client=qdrant_client, collection_name=self.COLLECTION_NAME)
