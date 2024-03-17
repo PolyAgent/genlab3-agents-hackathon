@@ -23,7 +23,7 @@ def scrape_techcrunch_content(article_url):
             return "Article content could not be found."
     except requests.RequestException as e:
         return f"Request failed: {e}"
-def fecthCompanyName(url):
+def fetch_company_name(url):
     match = re.search(r'https://www\.(.*?)\.', url)
     if match:
         # The extracted text is in the first group of the match
@@ -37,7 +37,7 @@ def get_startup_description(url):
         response.raise_for_status()  # Check for HTTP request errors
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
-        companyName = str(fecthCompanyName(url))
+        companyName = str(fetch_company_name(url))
         # Attempt to find sections that likely contain the startup description
         # This includes common identifiers like "about", "mission", "what-we-do"
         # some keywords are hardcoded here to make it work for the hack

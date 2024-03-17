@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./vc-pilot-frontend/knowledge_gpt"
-    ]
-}
