@@ -3,6 +3,7 @@ import anthropic
 from components.sidebar import sidebar
 import openai
 from VCPilot import VCPilot
+import random
 
 
 sidebar()
@@ -37,40 +38,50 @@ st.title("VC pilot")
 
 if question := st.chat_input("How risky is this project?:"):
     st.chat_message("user").markdown(question)
-    
-    # with st.spinner("Generating report..."):
-    #     response = vcpilot.get_full_report(question)
-    with st.spinner("Rephrasing problem statement..."):
-        time.sleep(2)
-        problem_statement = vcpilot.get_problem_statement(question)
-    with st.spinner("Generating research tasks..."):
-        tasks = vcpilot.get_research_tasks(question)
-    with st.spinner("Initializing agent..."):
-        time.sleep(2)
-        agent_executor = vcpilot.get_agent_executor()
-    with st.spinner("Agent performing research..."):
-        summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
-    with st.spinner("Getting highlights from research..."):
-        highlights = vcpilot.generate_highlights(question, citations, summaries)
-    with st.spinner("Considering areas for followup..."):
-        followups = vcpilot.get_followup_questions(highlights)
-    with st.spinner("Wrapping up..."):
-        conclusion = vcpilot.get_conclusion(question, highlights)
-    tasks_str = "- " + "\n- ".join(tasks)
-    final_report = f"""
-## Problem Statement
-{problem_statement}
 
-## Scope of Tasks
-{tasks_str}
+    try:    
+        # with st.spinner("Generating report..."):
+        #     response = vcpilot.get_full_report(question)
+        with st.spinner("Rephrasing problem statement..."):
+            time.sleep(2)
+            problem_statement = vcpilot.get_problem_statement(question)
+        with st.spinner("Generating research tasks..."):
+            tasks = vcpilot.get_research_tasks(question)
+        with st.spinner("Initializing agent..."):
+            time.sleep(2)
+            agent_executor = vcpilot.get_agent_executor()
+        with st.spinner("Agent performing research..."):
+            summaries, citations = vcpilot.get_research(question, agent_executor, tasks)
+        with st.spinner("Getting highlights from research..."):
+            highlights = vcpilot.generate_highlights(question, citations, summaries)
+        with st.spinner("Considering areas for followup..."):
+            followups = vcpilot.get_followup_questions(highlights)
+        with st.spinner("Wrapping up..."):
+            conclusion = vcpilot.get_conclusion(question, highlights)
+        tasks_str = "- " + "\n- ".join(tasks)
+        final_report = f"""
+    ## Problem Statement
+    {problem_statement}
 
-## Research
-{highlights}
+    ## Scope of Tasks
+    {tasks_str}
 
-## Follow up Questions
-{followups}
+    ## Research
+    {highlights}
 
-## Conclusion
-{conclusion}
-"""
-    st.chat_message("assistant").markdown(final_report)
+    ## Follow up Questions
+    {followups}
+
+    ## Conclusion
+    {conclusion}
+    """
+        st.chat_message("assistant").markdown(final_report)
+    except Exception as e:
+        responses = [
+            "It seems your idea isn't quite within the AI domain or is too vague for us to assess accurately.",
+            "Your idea doesn't seem directly related to AI, or it might be too ambiguous for us to provide a clear evaluation.",
+            "From what we can gather, your idea doesn't align with AI or it's too ambiguous to form a solid judgment.",
+            "Your idea appears to be either unrelated to AI or too nebulous for us to discern its connection.",
+            "It seems your idea is either not within the AI realm or too unclear for us to determine its relevance.",
+            ]
+        st.chat_message("assistant").markdown(random.choice(responses))
