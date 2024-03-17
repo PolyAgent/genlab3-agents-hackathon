@@ -1,0 +1,3 @@
+[submodule "vc-pilot-frontend"]
+	path = vc-pilot-frontend
+	url = https://github.com/StreamDeploy-DevRel/vc-pilot-frontend.git
