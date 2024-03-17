@@ -22,12 +22,18 @@ import os
 from qdrant_client import QdrantClient
 import openai
 
+# Set up environment variables
+os.environ["QDRANT_URL"] = st.secrets.qdrant.url
+os.environ["QDRANT_API_KEY"] = st.secrets.qdrant.api_key
+os.environ["OPENAI_API_BASE"] = st.secrets.fireworks.base_url
+os.environ["OPENAI_API_KEY"] = st.secrets.fireworks.api_key
+
 COLLECTION_NAME = "vc-pilot-full"
 
 # Set up Qdrant client for vector store
 qdrant_client = QdrantClient(
-    url=st.secrets.qdrant.url,
-    api_key=st.secrets.qdrant.api_key,
+    url=os.environ["QDRANT_URL"],
+    api_key=os.environ["QDRANT_API_KEY"],
 )
 
 # Embedding model for vector insertion
@@ -35,8 +41,8 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 
 fw_embed_model = OpenAIEmbedding(
     model_name="nomic-ai/nomic-embed-text-v1.5",
-    api_base=st.secrets.fireworks.base_url,
-    api_key=st.secrets.fireworks.api_key)
+    api_base=os.environ["OPENAI_API_BASE"],
+    api_key=os.environ["OPENAI_API_KEY"])
 Settings.embed_model = fw_embed_model
 
 
