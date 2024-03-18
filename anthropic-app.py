@@ -109,21 +109,27 @@ vcpilot = VCPilot()
 
 st.title("VC pilot")
 
+st.markdown("""You can:
+- Type in a startup pitch (right now limited to deep tech AI solutions, e.g deep learning algorithms for detecting pedestrians)
+- Copy paste link from Techcrunch.com  that highlights one specific startup that works in AI space
+- If you don’t have a Techcrunch link on your hands, you can quickly tap on one of the articles for us to analyze the startup pitch     
+""")
+
 example_articles = [
     "https://techcrunch.com/2024/03/12/axion-rays-ai-attempts-to-detect-product-flaws-to-prevent-recalls/",
     "https://techcrunch.com/2023/11/09/ghost-now-openai-backed-claims-llms-will-overcome-self-driving-setbacks-but-experts-are-skeptical/",
-    "https://techcrunch.com/2022/02/02/scale-ai-gets-into-the-synthetic-data-game/"
+    "https://techcrunch.com/2023/11/27/cradles-ai-powered-protein-programming-platform-levels-up-with-24m-in-new-funding/"
 ]
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    if st.button("Axion Ray"):
+    if st.button('TC article about "Axion Ray"'):
         st.session_state['selected_article_url'] = example_articles[0]
 with col2:
-    if st.button("Ghost Autonomy"):
+    if st.button('article about "G. Autonomy"'):
         st.session_state['selected_article_url'] = example_articles[1]
 with col3:
-    if st.button("Scale AI"):
+    if st.button('TC article about "Cradles.io"'):
         st.session_state['selected_article_url'] = example_articles[2]
 
 
