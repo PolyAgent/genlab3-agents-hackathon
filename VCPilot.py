@@ -1,8 +1,6 @@
-import fire
 import os
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
-from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, Settings
@@ -291,6 +289,3 @@ Preliminary report:
     def run(self, proposal: str):
         final_report = self.get_full_report(proposal)
         print(final_report)
-
-if __name__ == "__main__":
-    fire.Fire(VCPilot)
