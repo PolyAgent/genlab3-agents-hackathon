@@ -39,12 +39,12 @@ def get_indexer_and_retriever():
   # Set up Qdrant client for vector store
     qdrant_client = QdrantClient(
         url='https://56ab7b97-f618-4723-9b13-93e0b140c31b.us-east4-0.gcp.cloud.qdrant.io:6333',
-        api_key="lBfwfnQqD1ogXoZ86-X8wFWigRoZwZk1ydOYJf4pv6WJyLQmm7jqDg",
+        api_key="",
     )
 
     # Embedding model for vector insertion
     os.environ["OPENAI_API_BASE"]="https://api.fireworks.ai/inference/v1"
-    os.environ["OPENAI_API_KEY"] ="soXg5G0dRAywvZyyLIOLwjKBfe6S1kqV6lC2KdEcVbWqlxM4"
+    os.environ["OPENAI_API_KEY"] =""
     embed_model = FastEmbedEmbedding(model_name="nomic-ai/nomic-embed-text-v1.5")
     Settings.embed_model = embed_model
 
@@ -108,7 +108,7 @@ class FireworkLLM(LLM):
     ) -> str:
         client = openai.OpenAI(
             base_url = "https://api.fireworks.ai/inference/v1",
-            api_key="soXg5G0dRAywvZyyLIOLwjKBfe6S1kqV6lC2KdEcVbWqlxM4",
+            api_key="",
         )
         response = client.chat.completions.create(
           model="accounts/fireworks/models/mixtral-8x7b-instruct",
