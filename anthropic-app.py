@@ -62,7 +62,7 @@ if question := st.chat_input("How risky is this project?:"):
         # problem_statement_fix = problem_statement.replace("\"", "")
         final_report = f"""
 ## Problem Statement
-{problem_statement_fix}
+{problem_statement}
 
 ## Scope of Tasks
 {tasks_str}
@@ -85,4 +85,4 @@ if question := st.chat_input("How risky is this project?:"):
             "Your idea appears to be either unrelated to AI or too nebulous for us to discern its connection.",
             "It seems your idea is either not within the AI realm or too unclear for us to determine its relevance.",
             ]
-        st.chat_message("assistant").markdown(random.choice(responses))
+        st.chat_message("assistant").markdown(random.choice(responses) + f" error: {e}")
