@@ -38,13 +38,11 @@ COLLECTION_NAME = "vc-pilot-full"
 def get_indexer_and_retriever():
   # Set up Qdrant client for vector store
     qdrant_client = QdrantClient(
-        url='https://56ab7b97-f618-4723-9b13-93e0b140c31b.us-east4-0.gcp.cloud.qdrant.io:6333',
-        api_key="",
+        url=os.environ["QDRANT_URL"],
+        api_key=os.environ["QDRANT_API_KEY"],
     )
 
     # Embedding model for vector insertion
-    os.environ["OPENAI_API_BASE"]="https://api.fireworks.ai/inference/v1"
-    os.environ["OPENAI_API_KEY"] =""
     embed_model = FastEmbedEmbedding(model_name="nomic-ai/nomic-embed-text-v1.5")
     Settings.embed_model = embed_model
 
@@ -107,8 +105,8 @@ class FireworkLLM(LLM):
         **kwargs: Any,
     ) -> str:
         client = openai.OpenAI(
-            base_url = "https://api.fireworks.ai/inference/v1",
-            api_key="",
+            base_url = os.environ["OPENAI_API_BASE"],
+            api_key = os.environ["OPENAI_API_KEY"],
         )
         response = client.chat.completions.create(
           model="accounts/fireworks/models/mixtral-8x7b-instruct",
@@ -126,7 +124,7 @@ def get_mongo_content():
     mongo = MongoDBQuery(
         db_name="arxiv",
         collection_name="papers_for_review",
-        uri="mongodb+srv://genlab-hackathon:qSzbc3NWGgWie1aP@age-house.dypq7r5.mongodb.net",
+        uri=os.environ["MONGODB_URI"],
     )
     mongo_content = mongo.query(query_filter={"abstract": {"$exists": True}})
     print("Doc count", len(mongo_content))
